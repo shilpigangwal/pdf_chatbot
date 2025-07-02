@@ -44,7 +44,7 @@ def get_text_chunks(text):
 def get_conversation_chain(vectorstore):
     # Use Google's Chat model
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-pro-latest",
+        model="gemini-2.0-flash",
         temperature=0.7,
         convert_system_message_to_human=True # Gemini handles system messages differently
     )
