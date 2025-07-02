@@ -1,20 +1,19 @@
 import streamlit as st
 from PyPDF2 import PdfReader
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 import os
 
-# Set OpenAI API key from secrets
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+# Set Google API key from secrets
+os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 
 # Page configuration
-st.set_page_config(page_title="Chat with PDF", page_icon="📚")
-st.title("Chat with your PDF 📚")
+st.set_page_config(page_title="Chat with PDF (Google Gemini)", page_icon="📚")
+st.title("Chat with your PDF using Google Gemini 📚")
 
 # Initialize session state variables
 if "conversation" not in st.session_state:
@@ -43,7 +42,12 @@ def get_text_chunks(text):
     return chunks
 
 def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI(temperature=0.7, model_name='gpt-4o')
+    # Use Google's Chat model
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-pro-latest",
+        temperature=0.7,
+        convert_system_message_to_human=True # Gemini handles system messages differently
+    )
     
     template = """You are a helpful AI assistant that helps users understand their PDF documents.
     Use the following pieces of context to answer the question at the end.
@@ -77,8 +81,8 @@ def process_docs(pdf_docs):
         # Get text chunks
         text_chunks = get_text_chunks(raw_text)
         
-        # Create embeddings
-        embeddings = OpenAIEmbeddings()
+        # Create Google embeddings
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         
         # Create vector store using FAISS
         vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
@@ -91,6 +95,9 @@ def process_docs(pdf_docs):
         return True
     except Exception as e:
         st.error(f"An error occurred during processing: {str(e)}")
+        # Add more specific error advice for Google API
+        if "API key not valid" in str(e):
+            st.error("Please make sure your Google API Key is set correctly in st.secrets.")
         return False
 
 # Sidebar for PDF upload
@@ -103,7 +110,7 @@ with st.sidebar:
     )
     
     if st.button("Process") and pdf_docs:
-        with st.spinner("Processing your PDFs..."):
+        with st.spinner("Processing your PDFs with Google's AI..."):
             success = process_docs(pdf_docs)
             if success:
                 st.success("Processing complete!")
